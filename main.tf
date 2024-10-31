@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1"  # Change this to your preferred AWS region
+  region = var.region
 }
 
 # VPC
@@ -47,7 +47,7 @@ resource "aws_route_table" "private" {
 
 # Define availability zones for subnets
 locals {
-  availability_zones = ["us-east-1a", "us-east-1b", "us-east-1c"]
+  availability_zones = ["${var.region}a", "${var.region}b", "${var.region}c"]
 }
 
 # Create Public Subnets
@@ -90,7 +90,7 @@ resource "aws_route_table_association" "private" {
 }
 
 # EC2 Instances
-resource "aws_instance" "back_office" {
+resource "aws_instance" "marketing" {
   count         = var.instance_count  # Controls the number of instances
   ami           = var.ami
   instance_type = var.instance_type
@@ -106,7 +106,7 @@ resource "aws_instance" "back_office" {
   associate_public_ip_address = true  # Enable public IP assignment for public subnets
 
   tags = {
-    Name = "backOffice-${count.index + 1}"
+    Name = "marketing-${count.index + 1}"
   }
 }
 

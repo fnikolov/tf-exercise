@@ -36,7 +36,7 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Private Route Table
+# Private Route Table (without internet gateway access)
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
@@ -89,24 +89,40 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
-# EC2 Instances
+# EC2 Instances (using private subnets)
 resource "aws_instance" "marketing" {
   count         = var.instance_count  # Controls the number of instances
   ami           = var.ami
   instance_type = var.instance_type
 
-  # Cycle through the public subnets to distribute instances across availability zones
-  subnet_id     = aws_subnet.public[count.index % length(aws_subnet.public)].id
+  # Cycle through the private subnets to distribute instances across availability zones
+  subnet_id     = aws_subnet.private[count.index % length(aws_subnet.private)].id
 
   root_block_device {
     volume_size = var.root_block_device["volume_size"]
     volume_type = var.root_block_device["volume_type"]
   }
 
-  associate_public_ip_address = true  # Enable public IP assignment for public subnets
+  associate_public_ip_address = false  # Disable public IP assignment
 
   tags = {
     Name = "marketing-${count.index + 1}"
   }
+}
+
+# S3 Bucket for static files
+resource "aws_s3_bucket" "marketing-static-files" {
+  bucket = "marketing-static-files-${var.region}-${random_string.suffix.result}"
+
+  tags = {
+    Name        = "marketing-static-files"
+  }
+}
+
+# Random suffix to ensure bucket name uniqueness
+resource "random_string" "suffix" {
+  length  = 12
+  special = false
+  upper = false
 }
 

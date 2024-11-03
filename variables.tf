@@ -31,3 +31,8 @@ variable "instance_count" {
   default     = 1  # Default number of instances
 }
 
+variable "user_or_role" {
+  description = "IAM user or role to attach EC2 Instance Connect access policy"
+  type        = string
+}
+

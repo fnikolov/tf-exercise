@@ -46,14 +46,14 @@ resource "aws_subnet" "private" {
   }
 }
 
-# Internet Gateway
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "main-igw"
-  }
-}
+## Internet Gateway for the VPC
+#resource "aws_internet_gateway" "main" {
+#  vpc_id = aws_vpc.main.id
+#
+#  tags = {
+#    Name = "main-igw"
+#  }
+#}
 
 # Route Table for Public Subnets
 resource "aws_route_table" "public" {
@@ -61,7 +61,7 @@ resource "aws_route_table" "public" {
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
+    gateway_id = aws_internet_gateway.gw.id
   }
 
   tags = {
@@ -116,9 +116,11 @@ resource "aws_iam_role" "ec2_s3_access" {
   })
 }
 
-# IAM Policy for S3 access to the specific bucket
+
+
+
 resource "aws_iam_policy" "s3_access_policy" {
-  name = "s3_access_policy"
+  name = "ec2_s3_bucket_access_policy"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -126,11 +128,12 @@ resource "aws_iam_policy" "s3_access_policy" {
       {
         Action = [
           "s3:GetObject",
+          "s3:PutObject",
           "s3:ListBucket"
         ],
         Effect   = "Allow",
         Resource = [
-          aws_s3_bucket.marketing_static_files.arn,
+          "${aws_s3_bucket.marketing_static_files.arn}",
           "${aws_s3_bucket.marketing_static_files.arn}/*"
         ]
       }
@@ -138,11 +141,48 @@ resource "aws_iam_policy" "s3_access_policy" {
   })
 }
 
-# Attach the IAM policy to the IAM role
-resource "aws_iam_role_policy_attachment" "ec2_s3_policy_attach" {
+# Attach the policy to the EC2 IAM role
+resource "aws_iam_role_policy_attachment" "s3_policy_attach" {
   role       = aws_iam_role.ec2_s3_access.name
   policy_arn = aws_iam_policy.s3_access_policy.arn
 }
+
+
+
+
+
+
+
+
+
+
+## IAM Policy for S3 access to the specific bucket
+#resource "aws_iam_policy" "s3_access_policy" {
+#  name = "s3_access_policy"
+#
+#  policy = jsonencode({
+#    Version = "2012-10-17",
+#    Statement = [
+#      {
+#        Action = [
+#          "s3:GetObject",
+#          "s3:ListBucket"
+#        ],
+#        Effect   = "Allow",
+#        Resource = [
+#          aws_s3_bucket.marketing_static_files.arn,
+#          "${aws_s3_bucket.marketing_static_files.arn}/*"
+#        ]
+#      }
+#    ]
+#  })
+#}
+#
+## Attach the IAM policy to the IAM role
+#resource "aws_iam_role_policy_attachment" "ec2_s3_policy_attach" {
+#  role       = aws_iam_role.ec2_s3_access.name
+#  policy_arn = aws_iam_policy.s3_access_policy.arn
+#}
 
 # IAM Instance Profile for EC2 to use the IAM role
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
@@ -200,12 +240,13 @@ resource "aws_instance" "marketing" {
     volume_type = var.root_block_device["volume_type"]
   }
 
-  user_data = <<-EOL
+  user_data = <<-EOF
   #!/bin/sh -xe
   sudo dnf install httpd -y
   sudo systemctl start httpd
   sudo systemctl enable httpd
-  EOL
+  sudo echo "<html><body><h1>Welcome!</h1></body></html>" > /var/www/html/index.html
+  EOF
 
 
 
@@ -214,6 +255,75 @@ resource "aws_instance" "marketing" {
     Name = "marketing-${count.index + 1}"
   }
 }
+
+
+
+# VPC Endpoint for S3
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id       = aws_vpc.main.id
+  service_name = "com.amazonaws.${var.region}.s3"
+
+  route_table_ids = [
+    aws_route_table.public.id,
+    aws_route_table.private.id
+  ]
+
+  tags = {
+    Name = "s3-vpc-endpoint"
+  }
+}
+
+
+
+#resource "aws_vpc_endpoint_policy" "s3_endpoint_policy" {
+#  vpc_endpoint_id = aws_vpc_endpoint.s3.id
+#
+#  policy = jsonencode({
+#    Version = "2012-10-17",
+#    Statement = [
+#      {
+#        Sid      = "AllowS3AccessThroughVPCEndpoint",
+#        Effect   = "Allow",
+#        Principal = "*",
+#        Action   = [
+#          "s3:GetObject",
+#          "s3:ListBucket"
+#        ],
+#        Resource = [
+#          "${aws_s3_bucket.marketing_static_files.arn}",
+#          "${aws_s3_bucket.marketing_static_files.arn}/*"
+#        ]
+#      }
+#    ]
+#  })
+#}
+
+
+
+
+
+resource "aws_s3_bucket_policy" "marketing_static_files_policy" {
+  bucket = aws_s3_bucket.marketing_static_files.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid      = "AllowAccessFromVPCEndpoint",
+        Effect   = "Allow",
+        Principal = "*",
+        Action   = "s3:GetObject",
+        Resource = "${aws_s3_bucket.marketing_static_files.arn}/*",
+        Condition = {
+          StringEquals = {
+            "aws:SourceVpce" = "${aws_vpc_endpoint.s3.id}"
+          }
+        }
+      }
+    ]
+  })
+}
+
 
 
 
@@ -226,6 +336,10 @@ resource "aws_instance" "marketing" {
 resource "aws_ec2_instance_connect_endpoint" "ec2_instance_connect" {
   subnet_id         = aws_subnet.private[0].id  # Attach to private subnets
   security_group_ids = [aws_security_group.ec2_instance_connect_sg.id]
+
+  tags = {
+    Name = "ec2ic-vpc-endpoint"
+  }
 }
 
 
@@ -341,22 +455,25 @@ resource "aws_eip" "nat" {
   domain = "vpc"  # Specifies the Elastic IP is within a VPC
 }
 
-# Define or use an existing Internet Gateway for the NAT Gateway
-data "aws_internet_gateway" "existing_gw" {
-  filter {
-    name   = "attachment.vpc-id"
-    values = [aws_vpc.main.id]
-  }
-}
+## Define or use an existing Internet Gateway for the NAT Gateway
+#data "aws_internet_gateway" "existing_gw" {
+#  filter {
+#    name   = "attachment.vpc-id"
+#    values = [aws_vpc.main.id]
+#  }
+#}
 
+# Internet Gateway for the VPC
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
 
-  count = length(data.aws_internet_gateway.existing_gw.id) == 0 ? 1 : 0
+  tags = {
+    Name = "main-igw"
+  }
 }
 
 locals {
-  internet_gateway_id = length(data.aws_internet_gateway.existing_gw.id) > 0 ? data.aws_internet_gateway.existing_gw.id : aws_internet_gateway.gw[0].id
+  internet_gateway_id = aws_internet_gateway.gw.id
 }
 
 # NAT Gateway using the allocated Elastic IP

@@ -76,11 +76,14 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# Security Group for ALB to allow HTTP traffic from the internet
+
+
+# Security Group for ALB to allow HTTP and HTTPS traffic from the internet
 resource "aws_security_group" "alb_sg" {
   name   = "alb-sg"
   vpc_id = aws_vpc.main.id
 
+  # Allow HTTP traffic from the internet
   ingress {
     description = "Allow HTTP from the internet"
     from_port   = 80
@@ -89,6 +92,16 @@ resource "aws_security_group" "alb_sg" {
     cidr_blocks = ["0.0.0.0/0"]  # Allow traffic from all IPs
   }
 
+  # Allow HTTPS traffic from the internet
+  ingress {
+    description = "Allow HTTPS from the internet"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow traffic from all IPs
+  }
+
+  # Allow all outbound traffic
   egress {
     from_port   = 0
     to_port     = 0
@@ -96,6 +109,30 @@ resource "aws_security_group" "alb_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+
+
+
+## Security Group for ALB to allow HTTP traffic from the internet
+#resource "aws_security_group" "alb_sg" {
+#  name   = "alb-sg"
+#  vpc_id = aws_vpc.main.id
+#
+#  ingress {
+#    description = "Allow HTTP from the internet"
+#    from_port   = 80
+#    to_port     = 80
+#    protocol    = "tcp"
+#    cidr_blocks = ["0.0.0.0/0"]  # Allow traffic from all IPs
+#  }
+#
+#  egress {
+#    from_port   = 0
+#    to_port     = 0
+#    protocol    = "-1"
+#    cidr_blocks = ["0.0.0.0/0"]
+#  }
+#}
 
 # IAM Role for EC2 instances with S3 access
 resource "aws_iam_role" "ec2_s3_access" {
@@ -240,13 +277,13 @@ resource "aws_instance" "marketing" {
     volume_type = var.root_block_device["volume_type"]
   }
 
-  user_data = <<-EOF
+  user_data = <<-EOL
   #!/bin/sh -xe
   sudo dnf install httpd -y
   sudo systemctl start httpd
   sudo systemctl enable httpd
   sudo echo "<html><body><h1>Welcome!</h1></body></html>" > /var/www/html/index.html
-  EOF
+  EOL
 
 
 

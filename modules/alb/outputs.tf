@@ -8,3 +8,8 @@ output "alb_dns_name" {
   value       = aws_lb.public_alb.dns_name
 }
 
+output "alb_sg_id" {
+  description = "The ID of the security group attached to the ALB"
+  value       = aws_security_group.alb_sg.id
+}
+

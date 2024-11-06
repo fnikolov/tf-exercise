@@ -23,3 +23,7 @@ variable "instance_ids" {
   type        = list(string)
 }
 
+variable "certificate_arn" {
+  description = "The ARN of the ACM certificate to use for the ALB HTTPS listener"
+  type        = string
+}

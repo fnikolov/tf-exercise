@@ -1,5 +1,3 @@
-# modules/network/main.tf
-
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
@@ -9,7 +7,6 @@ resource "aws_vpc" "main" {
     Name = "${var.project_name}-vpc"
   }
 }
-
 
 # Public Subnets (create 3 subnets)
 resource "aws_subnet" "public" {

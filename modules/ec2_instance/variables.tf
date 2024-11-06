@@ -1,5 +1,3 @@
-# modules/ec2_instance/variables.tf
-
 variable "instance_count" {
   description = "Number of EC2 instances to launch"
   type        = number
@@ -25,18 +23,10 @@ variable "security_group_id" {
   type        = string
 }
 
-#variable "iam_instance_profile_arn" {
-#  description = "The ARN of the IAM instance profile"
-#  type        = string
-#}
-
 variable "iam_instance_profile" {
   description = "The name of the IAM instance profile to attach to the EC2 instance"
   type        = string
 }
-
-
-
 
 variable "root_block_device" {
   description = "Configuration for the root block device"

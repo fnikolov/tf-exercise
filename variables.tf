@@ -1,15 +1,3 @@
-#variable "region" {
-#  description = "The AWS region to deploy resources in"
-#  type        = string
-#  default     = "us-east-1"
-#}
-#
-#variable "ami" {
-#  description = "The ID of the AMI to use for the EC2 instance"
-#  type        = string
-#  default     = "ami-06b21ccaeff8cd686"
-#}
-
 variable "instance_type" {
   description = "The type of instance to start"
   type        = string
@@ -49,16 +37,6 @@ variable "instance_count_secondary" {
   type        = number
 }
 
-#
-#variable "user_or_role" {
-#  description = "IAM user or role to attach EC2 Instance Connect access policy"
-#  type        = string
-#}
-
-
-
-# variables.tf
-
 variable "primary_region" {
   description = "Primary AWS region to deploy resources"
   type        = string
@@ -76,16 +54,6 @@ variable "ami" {
 
 variable "ami_secondary" {
   description = "The AMI ID to use for EC2 instances in the secondary region"
-  type        = string
-}
-
-variable "ec2_security_group_id" {
-  description = "Security group ID for EC2 instances in the primary region"
-  type        = string
-}
-
-variable "ec2_security_group_id_secondary" {
-  description = "Security group ID for EC2 instances in the secondary region"
   type        = string
 }
 
@@ -113,8 +81,4 @@ variable "certificate_arn" {
   description = "The ARN of the ACM certificate to use for the ALB HTTPS listener"
   type        = string
 }
-
-
-
-
 

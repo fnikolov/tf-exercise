@@ -1,10 +1,10 @@
 # Application Load Balancer
 resource "aws_lb" "public_alb" {
   name               = "${var.name}-alb"
-  internal           = false               # Set to false to make it internet-facing
+  internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]  # Reference security group created in the module
-  subnets            = var.subnet_ids      # These should be public subnets
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = var.subnet_ids
 
   tags = {
     Name = "${var.name}-public-alb"
@@ -46,7 +46,7 @@ resource "aws_security_group" "alb_sg" {
 
 # HTTP Listener (Port 80) - Redirects to HTTPS
 resource "aws_lb_listener" "http_listener" {
-  load_balancer_arn = aws_lb.public_alb.arn  # Use public_alb here
+  load_balancer_arn = aws_lb.public_alb.arn
   port              = 80
   protocol          = "HTTP"
 

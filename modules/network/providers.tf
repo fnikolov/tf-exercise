@@ -1,5 +1,3 @@
-# modules/network/providers.tf
-
 terraform {
   required_providers {
     aws = {
@@ -8,8 +6,4 @@ terraform {
     }
   }
 }
-
-#provider "aws" {
-#  region = var.region
-#}
 

@@ -11,14 +11,14 @@ root_block_device = {
 # Secondary region
 secondary_region            = "eu-west-1"
 instance_count_secondary    = 2
-ami_secondary               = "ami-06b21ccaeff8cd686"
+ami_secondary               = "ami-00385a401487aefa4"
 instance_type_secondary     = "t2.micro"
 root_block_device_secondary = {
   volume_size = 30
   volume_type = "gp3"
 }
 
-user_or_role = "flutter"
+#user_or_role = "flutter"
 
 
 

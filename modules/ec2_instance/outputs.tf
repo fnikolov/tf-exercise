@@ -20,3 +20,7 @@ output "ec2_instance_sg_id" {
   value       = aws_security_group.ec2_sg.id
 }
 
+#output "ec2_instance_sg_id" {
+#  description = "The ID of the security group used by EC2 instances"
+#  value       = aws_security_group.ec2_instance_sg.id
+#}

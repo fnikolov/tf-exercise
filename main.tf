@@ -78,45 +78,125 @@ data "aws_availability_zones" "secondary" {
 }
 
 
+
+
 module "ec2_primary" {
   source = "./modules/ec2_instance"
   providers = {
     aws = aws
   }
 
-  vpc_id             = module.network_primary.vpc_id  # Use the output from the network module
-  subnet_ids         = module.network_primary.private_subnet_ids
-  instance_count     = var.instance_count
-  ami                = var.ami
-  instance_type      = var.instance_type
-  iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
-  root_block_device  = {
+  vpc_id                = module.network_primary.vpc_id
+  subnet_ids            = module.network_primary.private_subnet_ids
+  instance_count        = var.instance_count
+  ami                   = var.ami
+  instance_type         = var.instance_type
+  root_block_device     = {
     volume_size = var.root_block_device["volume_size"]
     volume_type = var.root_block_device["volume_type"]
   }
-  project_name       = var.project_name
-  security_group_id  = module.network_primary.public_subnet_ids[0]  # Example security group reference
+  project_name          = var.project_name
+  security_group_id     = module.ec2_primary.ec2_instance_sg_id
+  #  security_group_id     = module.ec2_instance_primary.ec2_instance_sg_id
+  #iam_instance_profile_arn  = aws_iam_instance_profile.ec2_instance_profile.arn
+  iam_instance_profile  = aws_iam_instance_profile.ec2_instance_profile.name
+  s3_bucket_arn         = module.s3_primary.bucket_arn
 }
 
 module "ec2_secondary" {
   source = "./modules/ec2_instance"
   providers = {
-    aws = aws.secondary  # Use the secondary region provider
+    aws = aws.secondary
   }
 
-  vpc_id             = module.network_secondary.vpc_id  # Use the output from the network_secondary module
-  subnet_ids         = module.network_secondary.private_subnet_ids
-  instance_count     = var.instance_count_secondary
-  ami                = var.ami_secondary
-  instance_type      = var.instance_type_secondary
-  iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile_secondary.name
-  root_block_device  = {
+  vpc_id                = module.network_secondary.vpc_id
+  subnet_ids            = module.network_secondary.private_subnet_ids
+  instance_count        = var.instance_count_secondary
+  ami                   = var.ami_secondary
+  instance_type         = var.instance_type_secondary
+  #iam_instance_profile_arn  = aws_iam_instance_profile.ec2_instance_profile.arn
+  iam_instance_profile  = aws_iam_instance_profile.ec2_instance_profile.name
+  root_block_device     = {
     volume_size = var.root_block_device_secondary["volume_size"]
     volume_type = var.root_block_device_secondary["volume_type"]
   }
-  project_name       = var.project_name
-  security_group_id  = module.network_secondary.public_subnet_ids[0]  # Security group reference for secondary network
+  project_name          = var.project_name
+  security_group_id     = module.ec2_secondary.ec2_instance_sg_id
+  # security_group_id     = module.ec2_instance_secondary.ec2_instance_sg_id
+  s3_bucket_arn         = module.s3_secondary.bucket_arn
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#module "ec2_primary" {
+#  source = "./modules/ec2_instance"
+#  providers = {
+#    aws = aws
+#  }
+#
+#  vpc_id             = module.network_primary.vpc_id  # Use the output from the network module
+#  subnet_ids         = module.network_primary.private_subnet_ids
+#  instance_count     = var.instance_count
+#  ami                = var.ami
+#  instance_type      = var.instance_type
+#  #iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile.name
+#  root_block_device  = {
+#    volume_size = var.root_block_device["volume_size"]
+#    volume_type = var.root_block_device["volume_type"]
+#  }
+#  project_name       = var.project_name
+#  security_group_id  = module.network_primary.public_subnet_ids[0]  # Example security group reference
+#  s3_bucket_arn      = module.s3_primary.bucket_arn
+#}
+#
+#module "ec2_secondary" {
+#  source = "./modules/ec2_instance"
+#  providers = {
+#    aws = aws.secondary  # Use the secondary region provider
+#  }
+#
+#  vpc_id             = module.network_secondary.vpc_id  # Use the output from the network_secondary module
+#  subnet_ids         = module.network_secondary.private_subnet_ids
+#  instance_count     = var.instance_count_secondary
+#  ami                = var.ami_secondary
+#  instance_type      = var.instance_type_secondary
+#  #iam_instance_profile = aws_iam_instance_profile.ec2_instance_profile_secondary.name
+#  root_block_device  = {
+#    volume_size = var.root_block_device_secondary["volume_size"]
+#    volume_type = var.root_block_device_secondary["volume_type"]
+#  }
+#  project_name       = var.project_name
+#  security_group_id  = module.network_secondary.public_subnet_ids[0]  # Security group reference for secondary network
+#  s3_bucket_arn      = module.s3_secondary.bucket_arn
+#}
 
 
 
@@ -137,10 +217,12 @@ module "alb_primary" {
   instance_ids      = module.ec2_primary.instance_ids
 }
 
-#IAM
-# Define an IAM Role for EC2 instances
+
+
+
+# IAM Role for EC2 instances with S3 access
 resource "aws_iam_role" "ec2_s3_access" {
-  name = "ec2_s3_access_role"
+  name = "${var.project_name}-ec2-s3-access-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -187,34 +269,62 @@ resource "aws_iam_role_policy_attachment" "ec2_s3_policy_attach" {
 
 # IAM Instance Profile for EC2 to use the IAM role
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
-  name = "ec2_instance_profile"
+  name = "${var.project_name}-ec2-instance-profile"
   role = aws_iam_role.ec2_s3_access.name
 }
 
 
 
+
 ##### S3
 # Use the S3 bucket module in the primary region
+#module "s3_primary" {
+#  source      = "./modules/s3_bucket"
+#  providers = {
+#    aws = aws  # Primary region provider
+#  }
+#  bucket_name = "marketing-static-files"
+#  environment  = var.environment
+#  vpce_id     = aws_vpc_endpoint.s3.id
+#}
+
 module "s3_primary" {
-  source      = "./modules/s3_bucket"
+  source       = "./modules/s3_bucket"
   providers = {
-    aws = aws  # Primary region provider
+    aws = aws  # Use the default provider for the primary region
   }
-  bucket_name = "marketing-static-files"
-  environment = "production"
-  vpce_id     = aws_vpc_endpoint.s3.id
+  project_name = var.project_name
+  region       = var.primary_region
+  environment  = var.environment
+  bucket_name  = "${var.project_name}-static-files-${var.primary_region}"  # Unique bucket name
+  vpce_id      = aws_vpc_endpoint.s3.id
 }
 
-# Use the S3 bucket module in the secondary region
 module "s3_secondary" {
-  source      = "./modules/s3_bucket"
+  source       = "./modules/s3_bucket"
   providers = {
-    aws = aws.secondary  # Secondary region provider
+    aws = aws.secondary  # Use the secondary region provider
   }
-  bucket_name = "marketing-static-files-eu"
-  environment = "production"
-  vpce_id     = aws_vpc_endpoint.s3_secondary.id
+  project_name = var.project_name
+  region       = var.secondary_region
+  environment  = var.environment
+  bucket_name  = "${var.project_name}-static-files-${var.secondary_region}"  # Unique bucket name
+  vpce_id      = aws_vpc_endpoint.s3_secondary.id
 }
+
+
+
+
+# Use the S3 bucket module in the secondary region
+#module "s3_secondary" {
+#  source      = "./modules/s3_bucket"
+#  providers = {
+#    aws = aws.secondary  # Secondary region provider
+#  }
+#  bucket_name = "marketing-static-files-eu"
+#  environment = "production"
+#  vpce_id     = aws_vpc_endpoint.s3_secondary.id
+#}
 
 #######################
 # VPC Endpoint for S3

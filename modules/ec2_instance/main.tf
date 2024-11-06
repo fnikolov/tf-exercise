@@ -46,11 +46,11 @@ resource "aws_instance" "marketing" {
   instance_type           = var.instance_type
   subnet_id               = element(var.subnet_ids, count.index % length(var.subnet_ids))
   associate_public_ip_address = false
+  #iam_instance_profile    = aws_iam_instance_profile.ec2_instance_profile.name
+  #iam_instance_profile    = var.iam_instance_profile_arn  # Use the instance profile ARN from the root module
   iam_instance_profile    = var.iam_instance_profile
-  vpc_security_group_ids  = [aws_security_group.ec2_sg.id]
-
-
-
+  vpc_security_group_ids  = [var.security_group_id]
+  #vpc_security_group_ids  = [aws_security_group.ec2_sg.id]
   root_block_device {
     volume_size = var.root_block_device["volume_size"]
     volume_type = var.root_block_device["volume_type"]
@@ -78,8 +78,60 @@ resource "aws_ec2_instance_connect_endpoint" "ec2_instance_connect" {
   }
 }
 
+## S3 connectivity
 
+## IAM Role for EC2 instances with S3 access
+#resource "aws_iam_role" "ec2_s3_access" {
+#  name = "${var.project_name}-ec2-s3-access-role"
+#
+#  assume_role_policy = jsonencode({
+#    Version = "2012-10-17",
+#    Statement = [
+#      {
+#        Action = "sts:AssumeRole",
+#        Principal = {
+#          Service = "ec2.amazonaws.com"
+#        },
+#        Effect = "Allow",
+#        Sid    = ""
+#      }
+#    ]
+#  })
+#}
 
+## IAM Instance Profile for EC2 to use the IAM role
+#resource "aws_iam_instance_profile" "ec2_instance_profile" {
+#  name = "${var.project_name}-ec2-instance-profile"
+#  role = aws_iam_role.ec2_s3_access.name
+#}
+
+## IAM Policy for S3 access to the specific bucket
+#resource "aws_iam_policy" "s3_access_policy" {
+#  name = "${var.project_name}-s3-access-policy"
+#
+#  policy = jsonencode({
+#    Version = "2012-10-17",
+#    Statement = [
+#      {
+#        Action = [
+#          "s3:GetObject",
+#          "s3:ListBucket"
+#        ],
+#        Effect   = "Allow",
+#        Resource = [
+#          var.s3_bucket_arn,
+#          "${var.s3_bucket_arn}/*"
+#        ]
+#      }
+#    ]
+#  })
+#}
+
+## Attach the IAM policy to the IAM role
+#resource "aws_iam_role_policy_attachment" "s3_access_attach" {
+#  role       = aws_iam_role.ec2_s3_access.name
+#  policy_arn = aws_iam_policy.s3_access_policy.arn
+#}
 
 
 

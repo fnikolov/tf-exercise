@@ -15,3 +15,13 @@ variable "vpce_id" {
   type        = string
 }
 
+variable "project_name" {
+  description = "The name of the project for tagging resources"
+  type        = string
+}
+
+variable "region" {
+  description = "The AWS region for the S3 bucket"
+  type        = string
+}
+

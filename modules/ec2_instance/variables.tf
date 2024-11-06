@@ -25,10 +25,18 @@ variable "security_group_id" {
   type        = string
 }
 
+#variable "iam_instance_profile_arn" {
+#  description = "The ARN of the IAM instance profile"
+#  type        = string
+#}
+
 variable "iam_instance_profile" {
-  description = "IAM instance profile to attach to the EC2 instances"
+  description = "The name of the IAM instance profile to attach to the EC2 instance"
   type        = string
 }
+
+
+
 
 variable "root_block_device" {
   description = "Configuration for the root block device"
@@ -42,6 +50,11 @@ variable "project_name" {
 
 variable "vpc_id" {
   description = "VPC ID where the EC2 instances and security groups will be created"
+  type        = string
+}
+
+variable "s3_bucket_arn" {
+  description = "The ARN of the S3 bucket for granting access to EC2 instances"
   type        = string
 }
 

@@ -77,7 +77,7 @@ resource "aws_lb_listener" "https_listener" {
 
 # Target Group
 resource "aws_lb_target_group" "ec2_target_group" {
-  name     = "${var.name}-target-group"
+  name     = "${var.name}-tg"
   port     = 80
   protocol = "HTTP"
   vpc_id   = var.vpc_id

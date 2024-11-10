@@ -77,8 +77,12 @@ variable "environment" {
   type        = string
 }
 
-variable "certificate_arn" {
+variable "primary_certificate_arn" {
   description = "The ARN of the ACM certificate to use for the ALB HTTPS listener"
   type        = string
 }
 
+variable "secondary_certificate_arn" {
+  description = "The ARN of the ACM certificate to use for the ALB HTTPS listener"
+  type        = string
+}

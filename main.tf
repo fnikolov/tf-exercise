@@ -102,9 +102,22 @@ module "alb_primary" {
   vpc_id       = module.network_primary.vpc_id
   name         = "flutter-poc-primary"
   subnet_ids   = module.network_primary.public_subnet_ids
-  certificate_arn   = var.certificate_arn
+  certificate_arn   = var.primary_certificate_arn
   security_group_id = module.alb_primary.alb_sg_id
   instance_ids      = module.ec2_primary.instance_ids
+}
+
+module "alb_secondary" {
+  source = "./modules/alb"
+  providers = {
+    aws = aws.secondary
+  }
+  vpc_id       = module.network_secondary.vpc_id
+  name         = "flutter-poc-secondary"
+  subnet_ids   = module.network_secondary.public_subnet_ids
+  certificate_arn   = var.secondary_certificate_arn
+  security_group_id = module.alb_secondary.alb_sg_id
+  instance_ids      = module.ec2_secondary.instance_ids
 }
 
 # IAM Role for EC2 instances with S3 access
